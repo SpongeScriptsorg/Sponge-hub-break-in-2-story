@@ -1,0 +1,593 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- Check if in main game
+if game.PlaceId ~= 13864667823 then
+    game:GetService("Players").LocalPlayer:Kick("Script Loads only in main game")
+    return
+end
+
+-- Variables
+local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local SelectedItem = "Med Kit"
+local AutoKill = false
+local AutoBreak = false
+local RemoveSlipping = false
+local SemiGodmode = false
+
+-- Remove Slipping Handler
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    if getnamecallmethod() == 'FireServer' and self.Name == 'IceSlip' and RemoveSlipping == true then
+        return task.wait(387420489)
+    end
+    return old(self, unpack(args))
+end)
+
+-- Semi-Godmode Handler
+local namecall
+namecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    if getnamecallmethod() == 'FireServer' and self.Name == 'Energy' then
+        if SemiGodmode == true then
+            if args[1] < 0 then
+                args[1] = 0
+            end
+        end
+        return namecall(self, unpack(args))
+    end
+    return namecall(self, ...)
+end)
+
+-- Create optimized GUI
+local Window = Fluent:CreateWindow({
+    Title = "Sponge hub (Break in 2)",
+    SubTitle = "Made by Sponge Scripts",
+    TabWidth = 140,
+    Size = UDim2.fromOffset(460, 360),
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+})
+
+-- Tabs
+local Tabs = {
+    Main = Window:AddTab({Title = "Main", Icon = "home"}),
+    Items = Window:AddTab({Title = "Items", Icon = "package"}),
+    Teleport = Window:AddTab({Title = "Teleport", Icon = "map-pin"}),
+    Missions = Window:AddTab({Title = "Missions", Icon = "flag"}),
+    Player = Window:AddTab({Title = "Player", Icon = "user"}),
+    Farming = Window:AddTab({Title = "Farming", Icon = "trending-up"})
+}
+
+-- ORIGINAL FUNCTIONS (optimized)
+local function TeleportTo(CFrameArg)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrameArg
+    end
+end
+
+local function GiveItem(Item)
+    if Item == "Armor" then
+        Events.Vending:FireServer(3, "Armor2", "Armor", LocalPlayer.Name, 1)
+    elseif Item == "Crowbar 1" or Item == "Crowbar 2" or Item == "Bat" or Item == "Pitchfork" or Item == "Hammer" or Item == "Wrench" or Item == "Broom" then
+        Events.Vending:FireServer(3, Item:gsub(" ", ""), "Weapons", LocalPlayer.Name, 1)
+    else
+        Events.GiveTool:FireServer(Item:gsub(" ", ""))
+    end
+end
+
+local function GetBestTool()
+    for i, v in pairs(LocalPlayer.PlayerGui.Assets.Note.Note.Note:GetChildren()) do
+        if v.Name:match("Circle") and v.Visible then
+            GiveItem(v.Name:gsub("Circle", ""))
+        end
+    end
+end
+
+local function Train(Ability)
+    Events.RainbowWhatStat:FireServer(Ability)
+end
+
+local function TakeDamage(Amount)
+    Events.Energy:FireServer(-Amount, false, false)
+end
+
+local function GiveAll()
+    GetBestTool()
+    task.wait(.1)
+    GiveItem("Armor")
+    task.wait(.1)
+    for i = 1, 5 do
+        Train("Speed")
+        Train("Strength")
+    end
+    task.wait(.1)
+    for i, v in pairs(LocalPlayer.Character:GetChildren()) do
+        if v:IsA("Tool") then
+            v.Parent = LocalPlayer.Backpack
+        end
+    end
+    for i = 1, 15 do
+        GiveItem("Gold Pizza")
+        task.wait(0.05)
+    end
+end
+
+local function HealAllPlayers()
+    for i, v in pairs(LocalPlayer.Character:GetChildren()) do
+        if v:IsA("Tool") then
+            v.Parent = LocalPlayer.Backpack
+        end
+    end
+    task.wait(.2)
+    GiveItem("Golden Apple")
+    task.wait(.5)
+    if LocalPlayer.Backpack:FindFirstChild("GoldenApple") then
+        LocalPlayer.Backpack.GoldenApple.Parent = LocalPlayer.Character
+    end
+    task.wait(.5)
+    Events.HealTheNoobs:FireServer()
+end
+
+local function KillEnemies()
+    for i, v in pairs(workspace.BadGuys:GetChildren()) do
+        Events.HitBadguy:FireServer(v, 64.8, 4)
+    end
+    for i, v in pairs(workspace.BadGuysBoss:GetChildren()) do
+        Events.HitBadguy:FireServer(v, 64.8, 4)
+    end
+    for i, v in pairs(workspace.BadGuysFront:GetChildren()) do
+        Events.HitBadguy:FireServer(v, 64.8, 4)
+    end
+end
+
+local function BreakBarricades()
+    for i, v in pairs(workspace.FallenTrees:GetChildren()) do
+        for i = 1, 20 do
+            if v:FindFirstChild("TreeHitPart") then
+                Events.RoadMissionEvent:FireServer(1, v.TreeHitPart, 5)
+            end
+        end
+    end
+end
+
+-- Auto loops (optimized)
+task.spawn(function()
+    while task.wait(0.5) do
+        if AutoKill then
+            pcall(KillEnemies)
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if AutoBreak then
+            pcall(BreakBarricades)
+        end
+    end
+end)
+
+-- Main Tab
+Tabs.Main:AddToggle("AutoKillToggle", {
+    Title = "Auto Kill Enemies",
+    Description = "Kills all enemies",
+    Default = false,
+    Callback = function(state)
+        AutoKill = state
+        Fluent:Notify({
+            Title = "Auto Kill",
+            Content = state and "Enabled" or "Disabled",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Main:AddToggle("AutoBreakToggle", {
+    Title = "Auto Break Trees",
+    Description = "Breaks all trees",
+    Default = false,
+    Callback = function(state)
+        AutoBreak = state
+        Fluent:Notify({
+            Title = "Auto Break",
+            Content = state and "Enabled" or "Disabled",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Main:AddButton({
+    Title = "Give All OP Items",
+    Description = "Best items",
+    Callback = function()
+        pcall(GiveAll)
+        Fluent:Notify({
+            Title = "Success",
+            Content = "OP items given",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Main:AddButton({
+    Title = "Kill All Enemies",
+    Description = "Kill enemies",
+    Callback = function()
+        pcall(KillEnemies)
+        Fluent:Notify({
+            Title = "Enemies Killed",
+            Content = "All enemies dead",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Main:AddButton({
+    Title = "Break All Trees",
+    Description = "Break trees",
+    Callback = function()
+        pcall(BreakBarricades)
+        Fluent:Notify({
+            Title = "Trees Broken",
+            Content = "All trees removed",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Main:AddButton({
+    Title = "Heal All Players",
+    Description = "Heal everyone",
+    Callback = function()
+        pcall(HealAllPlayers)
+        Fluent:Notify({
+            Title = "Players Healed",
+            Content = "Everyone healed",
+            Duration = 2
+        })
+    end
+})
+
+-- Items Tab
+local ItemsList = {
+    "Med Kit", "Armor", "Pizza", "Golden Apple", "Gold Pizza", 
+    "Key", "Crowbar 1", "Bat", "Wrench", "Louise", "Book", "Phone"
+}
+
+Tabs.Items:AddDropdown("ItemsDropdown", {
+    Title = "Select Item",
+    Values = ItemsList,
+    Multi = false,
+    Default = "Med Kit",
+    Callback = function(value)
+        SelectedItem = value
+    end
+})
+
+Tabs.Items:AddButton({
+    Title = "Spawn Item",
+    Description = "Spawn selected",
+    Callback = function()
+        pcall(function() GiveItem(SelectedItem) end)
+        Fluent:Notify({
+            Title = "Item Spawned",
+            Content = SelectedItem .. " spawned",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Items:AddButton({
+    Title = "10 Gold Pizzas",
+    Description = "Spawn 10 pizzas",
+    Callback = function()
+        task.spawn(function()
+            for i = 1, 10 do
+                GiveItem("Gold Pizza")
+                task.wait(0.05)
+            end
+        end)
+        Fluent:Notify({
+            Title = "Gold Pizzas",
+            Content = "10 spawned",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Items:AddButton({
+    Title = "Get Best Tool",
+    Description = "Spawn best tool",
+    Callback = function()
+        pcall(GetBestTool)
+        Fluent:Notify({
+            Title = "Best Tool",
+            Content = "Best tool obtained",
+            Duration = 2
+        })
+    end
+})
+
+-- Teleport Tab
+Tabs.Teleport:AddButton({
+    Title = "Teleport to House",
+    Description = "Main house",
+    Callback = function()
+        TeleportTo(CFrame.new(-199.240555, 30.0009422, -790.182739, 0.08340507, 2.48169538e-08, 0.996515751, -2.7112752e-09, 1, -2.46767993e-08, -0.996515751, -6.43658127e-10, 0.08340507))
+    end
+})
+
+Tabs.Teleport:AddButton({
+    Title = "Teleport to Dog",
+    Description = "Dog mission",
+    Callback = function()
+        TeleportTo(CFrame.new(-257.56839, 29.4499969, -910.452637, -0.238445505, 7.71292363e-09, 0.971155882, 1.2913591e-10, 1, -7.91029819e-09, -0.971155882, -1.76076387e-09, -0.238445505))
+    end
+})
+
+Tabs.Teleport:AddButton({
+    Title = "Teleport to Pizza",
+    Description = "Pizza spawn",
+    Callback = function()
+        TeleportTo(CFrame.new(-203.533081, 30.4500484, -790.901428, -0.0148558766, 8.85941187e-09, -0.999889672, 2.65695732e-08, 1, 8.46563175e-09, 0.999889672, -2.64408779e-08, -0.0148558766))
+    end
+})
+
+Tabs.Teleport:AddButton({
+    Title = "Teleport to Apple",
+    Description = "Golden apple",
+    Callback = function()
+        TeleportTo(CFrame.new(61.8781624, 29.4499969, -534.381165, -0.584439218, -1.05103076e-07, 0.811437488, -3.12853778e-08, 1, 1.06993674e-07, -0.811437488, 3.71451705e-08, -0.584439218))
+    end
+})
+
+-- Missions Tab
+Tabs.Missions:AddButton({
+    Title = "Dog Mission",
+    Description = "Complete dog",
+    Callback = function()
+        task.spawn(function()
+            for i, v in pairs(LocalPlayer.PlayerGui.Assets.Note.Note.Note:GetChildren()) do
+                if v.Name:match("Circle") and v.Visible then
+                    GiveItem(v.Name:gsub("Circle", ""))
+                    task.wait(.1)
+                    if LocalPlayer.Backpack:FindFirstChild(v.Name:gsub("Circle", "")) then
+                        LocalPlayer.Backpack[v.Name:gsub("Circle", "")].Parent = LocalPlayer.Character
+                    end
+                    TeleportTo(CFrame.new(-257.56839, 29.4499969, -910.452637, -0.238445505, 7.71292363e-09, 0.971155882, 1.2913591e-10, 1, -7.91029819e-09, -0.971155882, -1.76076387e-09, -0.238445505))
+                    task.wait(.5)
+                    Events.CatFed:FireServer(v.Name:gsub("Circle", ""))
+                    Fluent:Notify({
+                        Title = "Dog Mission",
+                        Content = "Completed",
+                        Duration = 2
+                    })
+                    break
+                end
+            end
+        end)
+    end
+})
+
+Tabs.Missions:AddButton({
+    Title = "Agent Mission",
+    Description = "Complete agent",
+    Callback = function()
+        task.spawn(function()
+            GiveItem("Louise")
+            task.wait(.1)
+            if LocalPlayer.Backpack:FindFirstChild("Louise") then
+                LocalPlayer.Backpack.Louise.Parent = LocalPlayer.Character
+            end
+            Events.LouiseGive:FireServer(2)
+            Fluent:Notify({
+                Title = "Agent Mission",
+                Content = "Completed",
+                Duration = 2
+            })
+        end)
+    end
+})
+
+Tabs.Missions:AddButton({
+    Title = "Uncle Mission",
+    Description = "Complete uncle",
+    Callback = function()
+        task.spawn(function()
+            GiveItem("Key")
+            task.wait(.1)
+            if LocalPlayer.Backpack:FindFirstChild("Key") then
+                LocalPlayer.Backpack.Key.Parent = LocalPlayer.Character
+            end
+            wait(.5)
+            Events.KeyEvent:FireServer()
+            Fluent:Notify({
+                Title = "Uncle Mission",
+                Content = "Completed",
+                Duration = 2
+            })
+        end)
+    end
+})
+
+-- Player Tab
+Tabs.Player:AddSlider("WalkSpeedSlider", {
+    Title = "Walk Speed",
+    Description = "16-100",
+    Default = 16,
+    Min = 16,
+    Max = 100,
+    Rounding = 1,
+    Callback = function(value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = value
+        end
+    end
+})
+
+Tabs.Player:AddSlider("JumpPowerSlider", {
+    Title = "Jump Power",
+    Description = "50-200",
+    Default = 50,
+    Min = 50,
+    Max = 200,
+    Rounding = 1,
+    Callback = function(value)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.JumpPower = value
+        end
+    end
+})
+
+Tabs.Player:AddToggle("SemiGodmodeToggle", {
+    Title = "Semi Godmode",
+    Description = "No health loss",
+    Default = false,
+    Callback = function(state)
+        SemiGodmode = state
+        Fluent:Notify({
+            Title = "Godmode",
+            Content = state and "On" or "Off",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Player:AddToggle("NoSlipToggle", {
+    Title = "Anti Ice Slip",
+    Description = "No slipping",
+    Default = false,
+    Callback = function(state)
+        RemoveSlipping = state
+        Fluent:Notify({
+            Title = "Anti Slip",
+            Content = state and "On" or "Off",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Player:AddButton({
+    Title = "Reset Speed/Jump",
+    Description = "Reset to default",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 16
+            LocalPlayer.Character.Humanoid.JumpPower = 50
+            Fluent:Notify({
+                Title = "Reset",
+                Content = "Back to default",
+                Duration = 2
+            })
+        end
+    end
+})
+
+Tabs.Player:AddButton({
+    Title = "Train Speed",
+    Description = "Increase speed",
+    Callback = function()
+        pcall(function() Train("Speed") end)
+        Fluent:Notify({
+            Title = "Trained",
+            Content = "Speed increased",
+            Duration = 2
+        })
+    end
+})
+
+Tabs.Player:AddButton({
+    Title = "Train Strength",
+    Description = "Increase strength",
+    Callback = function()
+        pcall(function() Train("Strength") end)
+        Fluent:Notify({
+            Title = "Trained",
+            Content = "Strength increased",
+            Duration = 2
+        })
+    end
+})
+
+-- Farming Tab
+Tabs.Farming:AddButton({
+    Title = "Collect Cash",
+    Description = "Pick up cash",
+    Callback = function()
+        task.spawn(function()
+            for i, v in pairs(workspace:GetChildren()) do
+                if v.Name == "Part" and v:FindFirstChild("TouchInterest") and v:FindFirstChild("Weld") and v.Transparency == 1 then
+                    firetouchinterest(v, LocalPlayer.Character.HumanoidRootPart, 0)
+                end
+            end
+        end)
+        Fluent:Notify({
+            Title = "Cash",
+            Content = "All collected",
+            Duration = 2
+        })
+    end
+})
+
+-- Floating toggle button
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SpongeHubToggle"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Size = UDim2.fromOffset(68, 68)
+ToggleButton.Position = UDim2.fromOffset(10, 10)
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.Image = "rbxassetid://13498440962"
+ToggleButton.Parent = ScreenGui
+
+local dragging = false
+local dragStart
+local startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    ToggleButton.Position = UDim2.new(0, startPos.X.Offset + delta.X, 0, startPos.Y.Offset + delta.Y)
+end
+
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleButton.Position
+    end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateInput(input)
+    end
+end)
+
+ToggleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    Window:Minimize()
+end)
+
+-- Initial notification
+task.spawn(function()
+    task.wait(1)
+    Fluent:Notify({
+        Title = "Sponge hub (Break in 2)",
+        Content = "Loaded successfully!\nMade by Sponge Scripts",
+        Duration = 4,
+        Type = "Info"
+    })
+end)
+
+Window:SelectTab(1)
