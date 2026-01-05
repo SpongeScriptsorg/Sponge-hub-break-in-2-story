@@ -132,15 +132,16 @@ local function HealAllPlayers()
     Events.HealTheNoobs:FireServer()
 end
 
+-- ORIGINAL WORKING KillEnemies function
 local function KillEnemies()
     for i, v in pairs(workspace.BadGuys:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 64.8, 4)
+        Events.HitBadguy:FireServer(v, 164.8, 4)
     end
     for i, v in pairs(workspace.BadGuysBoss:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 64.8, 4)
+        Events.HitBadguy:FireServer(v, 164.8, 4)
     end
     for i, v in pairs(workspace.BadGuysFront:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 64.8, 4)
+        Events.HitBadguy:FireServer(v, 164.8, 4)
     end
 end
 
@@ -313,11 +314,13 @@ Tabs.Items:AddButton({
 })
 
 -- Teleport Tab
+local HouseCFrame = CFrame.new(-199.240555, 30.0009422, -790.182739, 0.08340507, 2.48169538e-08, 0.996515751, -2.7112752e-09, 1, -2.46767993e-08, -0.996515751, -6.43658127e-10, 0.08340507)
+
 Tabs.Teleport:AddButton({
     Title = "Teleport to House",
     Description = "Main house",
     Callback = function()
-        TeleportTo(CFrame.new(-199.240555, 30.0009422, -790.182739, 0.08340507, 2.48169538e-08, 0.996515751, -2.7112752e-09, 1, -2.46767993e-08, -0.996515751, -6.43658127e-10, 0.08340507))
+        TeleportTo(HouseCFrame)
     end
 })
 
@@ -346,9 +349,10 @@ Tabs.Teleport:AddButton({
 })
 
 -- Missions Tab
+-- UPDATED: Dog Mission with teleport back home after 2 seconds
 Tabs.Missions:AddButton({
     Title = "Dog Mission",
-    Description = "Complete dog",
+    Description = "Complete dog (returns home in 2s)",
     Callback = function()
         task.spawn(function()
             for i, v in pairs(LocalPlayer.PlayerGui.Assets.Note.Note.Note:GetChildren()) do
@@ -361,9 +365,20 @@ Tabs.Missions:AddButton({
                     TeleportTo(CFrame.new(-257.56839, 29.4499969, -910.452637, -0.238445505, 7.71292363e-09, 0.971155882, 1.2913591e-10, 1, -7.91029819e-09, -0.971155882, -1.76076387e-09, -0.238445505))
                     task.wait(.5)
                     Events.CatFed:FireServer(v.Name:gsub("Circle", ""))
+                    
                     Fluent:Notify({
                         Title = "Dog Mission",
-                        Content = "Completed",
+                        Content = "Completed! Returning home in 2 seconds...",
+                        Duration = 2
+                    })
+                    
+                    -- Wait 2 seconds then teleport back home
+                    task.wait(2)
+                    
+                    TeleportTo(HouseCFrame)
+                    Fluent:Notify({
+                        Title = "Dog Mission",
+                        Content = "Returned home!",
                         Duration = 2
                     })
                     break
