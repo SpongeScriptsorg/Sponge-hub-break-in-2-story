@@ -135,13 +135,13 @@ end
 -- ORIGINAL WORKING KillEnemies function
 local function KillEnemies()
     for i, v in pairs(workspace.BadGuys:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 164.8, 4)
+        Events.HitBadguy:FireServer(v, 64.8, 4)
     end
     for i, v in pairs(workspace.BadGuysBoss:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 164.8, 4)
+        Events.HitBadguy:FireServer(v, 64.8, 4)
     end
     for i, v in pairs(workspace.BadGuysFront:GetChildren()) do
-        Events.HitBadguy:FireServer(v, 164.8, 4)
+        Events.HitBadguy:FireServer(v, 64.8, 4)
     end
 end
 
